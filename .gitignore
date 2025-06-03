@@ -1,0 +1,31 @@
+# Environment files
+.env
+env/
+venv/
+*.env
+.env/*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyd
+*.pyo
+*.so
+.Python
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# IDE & OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependency directories
+node_modules/

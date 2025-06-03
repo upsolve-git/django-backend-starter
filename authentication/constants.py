@@ -1,0 +1,26 @@
+USER="user"
+EMAIL = "email"
+SECRET_KEY = "BoltAbacus"
+PASSWORD = "password"
+
+TOKEN_HEADER = "AUTH-TOKEN"
+JSON_MESSAGE = "message"
+SUCCESS_MESSAGE = "Success"
+
+ROLE = "role"
+TAG = 'tag'
+USER_ID = "userId"
+FIRST_NAME = "firstName"
+LAST_NAME = "lastName"
+PHONE_NUMBER = "phoneNumber"
+ADMIN = "Admin"
+
+TAG_ID = "tagId"
+ORGANIZATION_NAME = "organizationName"
+ORGANIZATION_EXPIRATION_DATE = "organizationExpirationDate"
+TAG_NAME = "tagName"
+BLOCKED = "blocked"
+EXPIRATION_DATE = "expirationDate"
+EXPIRY_TIME = "expiryTime"
+TIME = "time"
+ENCRYPTED_PASSWORD = "encryptedPassword"
