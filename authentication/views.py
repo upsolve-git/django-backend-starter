@@ -31,9 +31,8 @@ class Login(APIView):
             required=['email', 'password'],
         ),
         responses={
-            200: openapi.Response(
-                description='Login successful',
-                schema=openapi.Schema(
+            200: openapi.Response(description='Login successful', schema=openapi.Schema
+                (
                     type=openapi.TYPE_OBJECT,
                     properties={
                         'token': openapi.Schema(type=openapi.TYPE_STRING, description='Authentication token'),
@@ -47,20 +46,12 @@ class Login(APIView):
         }
     )
 
-
-    def get(self, request):
-        return Response({
-            "message": "Login endpoint",
-            "required_fields": ["email", "password"],
-            "method": "POST",
-            "endpoint": request.build_absolute_uri()
-        })
         
     def post(self, request):
         data = self.request.data
-        email = data[Constants.EMAIL]
+        email = data[EMAIL]
         email = email.lower()
-        password = data[Constants.PASSWORD]
+        password = data[PASSWORD]
         user = UserDetails.objects.filter(email=email).values()
 
         if user.exists():
@@ -76,21 +67,21 @@ class Login(APIView):
                                                              "administrator to renew it."},
                                     status=status.HTTP_403_FORBIDDEN)
                 payload = {
-                    Constants.USER_ID: user[Constants.USER_ID],
-                    Constants.ROLE: user[Constants.ROLE],
-                    Constants.EXPIRY_TIME: str(datetime.datetime.utcnow() + datetime.timedelta(minutes=60)),
+                    USER_ID: user[USER_ID],
+                    ROLE: user[ROLE],
+                    EXPIRY_TIME: str(datetime.datetime.utcnow() + datetime.timedelta(minutes=60)),
                     "creationTime": str(datetime.datetime.utcnow()),
-                    Constants.ORGANIZATION_EXPIRATION_DATE: str(organizationExpirationDate)
+                    ORGANIZATION_EXPIRATION_DATE: str(organizationExpirationDate)
                 }
                 secretKey = Constants.SECRET_KEY
                 loginToken = jwt.encode(payload, secretKey, algorithm='HS256')
                 response = Response({
-                    Constants.EMAIL: user[Constants.EMAIL],
-                    Constants.ROLE: user[Constants.ROLE],
-                    Constants.FIRST_NAME: user[Constants.FIRST_NAME],
-                    Constants.LAST_NAME: user[Constants.LAST_NAME],
-                    "phone": user[Constants.PHONE_NUMBER],
-                    Constants.ORGANIZATION_NAME: organization.organizationName,
+                    EMAIL: user[EMAIL],
+                    ROLE: user[ROLE],
+                    FIRST_NAME: user[FIRST_NAME],
+                    LAST_NAME: user[LAST_NAME],
+                    "phone": user[PHONE_NUMBER],
+                    ORGANIZATION_NAME: organization.organizationName,
                     "token": loginToken
                 },
                     status=status.HTTP_200_OK
@@ -140,12 +131,12 @@ class SignUp(APIView):
     def post(self,request):
         try:
             data = self.request.data
-            email = data[Constants.EMAIL]
+            email = data[EMAIL]
             email = email.lower()
-            encryptedPassword = data[Constants.PASSWORD]
-            first_name = data[Constants.FIRST_NAME]
-            last_name = data[Constants.LAST_NAME]
-            phone_number = data[Constants.PHONE_NUMBER]
+            encryptedPassword = data[PASSWORD]
+            first_name = data[FIRST_NAME]
+            last_name = data[LAST_NAME]
+            phone_number = data[PHONE_NUMBER]
 
             if not all([email, password, first_name, last_name]):
                 return Response(
@@ -162,20 +153,21 @@ class SignUp(APIView):
             hashed_password = make_password(password)
 
             user = UserDetails.objects.create(
-                email=email,
-                encryptedPassword=hashed_password,
-                first_name=first_name,
-                last_name=last_name,
-                phone_number=phone_number,
-                blocked=False,  
-                role="user",  
+                email=data[EMAIL].lower(),
+                encryptedPassword=make_password(data[PASSWORD]),
+                firstName=data[FIRST_NAME],
+                lastName=data[LAST_NAME],
+                phoneNumber=data.get(PHONE_NUMBER, ""),
+                tagId=data[TAG_ID],
+                blocked=False,
+                role=USER 
             )
 
             expiry_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=60)
             payload = {
-                Constants.USER_ID: user.id,
-                Constants.EMAIL: user.email,
-                Constants.EXPIRY_TIME: str(datetime.datetime.utcnow() + datetime.timedelta(minutes=60)),
+                USER_ID: user.id,
+                EMAIL: user.email,
+                EXPIRY_TIME: str(datetime.datetime.utcnow() + datetime.timedelta(minutes=60)),
             }
             secret_key = Constants.SECRET_KEY
             token = jwt.encode(payload, secret_key, algorithm='HS256')
@@ -183,10 +175,12 @@ class SignUp(APIView):
             return Response(
                 {
                     Constants.JSON_MESSAGE: "Account created successfully",
-                    Constants.EMAIL: user.email,
-                    Constants.FIRST_NAME: user.first_name,
-                    Constants.LAST_NAME: user.last_name,
-                    "token": token 
+                    'userId': user.userId,
+                    'email': user.email,
+                    'firstName': user.firstName,
+                    'lastName': user.lastName,
+                    'message': "Account created successfully",
+                    'token': token
                 },
                 status=status.HTTP_201_CREATED
             )
@@ -199,6 +193,22 @@ class SignUp(APIView):
 
 class ResetPassword(APIView):
     permission_classes = [AllowAny]
+    
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'password': openapi.Schema(type=openapi.TYPE_STRING, format='password'),
+            },
+            required=['password'],
+        ),
+        responses={
+            200: 'Password reset successful',
+            400: 'Invalid token',
+        }
+    )
+
 
     def post(self, request):
         try:
@@ -210,7 +220,7 @@ class ResetPassword(APIView):
             except Exception as e:
                 return Response({Constants.JSON_MESSAGE: repr(e)}, status=status.HTTP_403_FORBIDDEN)
             data = request.data
-            password = data[Constants.PASSWORD]
+            password = data[PASSWORD]
             user = UserDetails.objects.filter(userId=requestUserId).first()
             user.encryptedPassword = password
             user.save()
@@ -229,7 +239,7 @@ def IdExtraction(token):
     try:
         secretKey = Constants.SECRET_KEY
         payload = jwt.decode(token, secretKey, algorithms=['HS256'])
-        userId = payload[Constants.USER_ID]
+        userId = payload[USER_ID]
         return userId
     except Exception as e:
         return e
@@ -256,11 +266,65 @@ def ConvertToString(questionJson):
 
 class ForgotPassword(APIView):
     permission_classes = (CustomPermission,)
+    
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(
+                    type=openapi.TYPE_STRING, 
+                    format='email',
+                    example="user@example.com"
+                ),
+            },
+            required=['email'],
+        ),
+        responses={
+            200: openapi.Response(
+                description="Password reset link sent",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Reset link sent to email"
+                        ),
+                    }
+                )
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Invalid email address"
+                        ),
+                    }
+                )
+            ),
+            404: openapi.Response(
+                description="Not Found",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="User not found"
+                        ),
+                    }
+                )
+            ),
+        },
+       operation_summary="Request password reset",
+       operation_description="Send password reset link to user's email",
+    )
     def post(self, request):
         try:
             request_data = request.data
-            email = request_data['email']
+            email = request_data[EMAIL]
             if email is None:
                 return Response({Constants.JSON_MESSAGE: "Invalid email Id"}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -272,8 +336,8 @@ class ForgotPassword(APIView):
             # Generate access token with 60 minutes expiry
             expiry_time = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
             payload = {
-                Constants.EMAIL: user.email,
-                Constants.EXPIRY_TIME: expiry_time.strftime('%Y-%m-%d %H:%M:%S'),
+                     EMAIL: user.email,
+                     EXPIRY_TIME: expiry_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
 
             secrect_key = settings.SECRET_KEY
@@ -288,40 +352,45 @@ class ForgotPassword(APIView):
 
 
 
-    def post(self, request):
-        try:
-            data = request.data
-            email = data[Constants.EMAIL].lower()
-            user = UserDetails.objects.filter(email=email).first()
-            if user is not None:
-
-                organization = OrganizationTag.objects.filter(tagId=user.tag_id).first()
-                organizationExpirationDate = organization.expirationDate
-                payload = {
-                    Constants.USER_ID: user.userId,
-                    Constants.ROLE: user.role,
-                    Constants.EXPIRY_TIME: str(datetime.datetime.utcnow() + datetime.timedelta(minutes=60)),
-                    "creationTime": str(datetime.datetime.utcnow()),
-                    Constants.ORGANIZATION_EXPIRATION_DATE: str(organizationExpirationDate)
-
-                }
-                secretKey = Constants.SECRET_KEY
-                loginToken = jwt.encode(payload, secretKey, algorithm='HS256')
-                userName = user.firstName + " " + user.lastName
-                sendLinkEmail(loginToken, userName, email)
-                return Response({Constants.JSON_MESSAGE: Constants.SUCCESS_MESSAGE}, status=status.HTTP_200_OK)
-            else:
-                return Response({Constants.JSON_MESSAGE: "The user doesn't exist"}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            return Response({Constants.JSON_MESSAGE: repr(e)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-
 class ResetPasswordV2(APIView):
     permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_summary="Reset user password",
+        operation_description="Reset password using valid token",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'token': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Password reset token"
+                ),
+                'password': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format='password',
+                    description="New password"
+                ),
+            },
+            required=['token', 'password'],
+        ),
+        responses={
+            200: openapi.Response(
+                description="Password reset successful",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Password updated successfully"
+                        ),
+                    }
+                )
+            ),
+            400: openapi.Response(description="Invalid or expired token"),
+            500: openapi.Response(description="Internal server error"),
+        }
+    )
+
 
     def post(self, request):
         try:
@@ -335,7 +404,7 @@ class ResetPasswordV2(APIView):
                     raise Exception(Constants.INVALID_TOKEN_MESSAGE)
             except Exception as e:
                 return Response({Constants.JSON_MESSAGE: repr(e)}, status=status.HTTP_403_FORBIDDEN)
-            password = data[Constants.PASSWORD]
+            password = data[PASSWORD]
             user = UserDetails.objects.filter(userId=requestUserId).first()
             user.encryptedPassword = password
             user.save()

@@ -19,7 +19,7 @@ from django.urls import path,include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
 
 
 
@@ -39,6 +39,6 @@ urlpatterns = [
     path('',include('authentication.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('__debug__/', include('debug_toolbar.urls')),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0)), 
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0))
 ]

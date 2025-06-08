@@ -9,7 +9,7 @@ INSTALLED_APPS += [
 
 # Additional middleware for development
 MIDDLEWARE += [
-    #'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 # Show emails in console during development
@@ -20,5 +20,5 @@ ALLOWED_HOSTS = ['*']
 
 # Django Debug Toolbar
 INTERNAL_IPS = [
-   # '127.0.0.1',
+   '127.0.0.1',
 ]

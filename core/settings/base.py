@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -170,10 +171,50 @@ CORS_ALLOW_CREDENTIALS = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_HEADERS = (
-    *default_headers,
-    "AUTH-TOKEN",
-)
+
+CORS_ALLOWED_ORIGINS = [
+    "https://yourfrontend.com",
+    "https://www.yourfrontend.com",
+    "http://localhost:3000", 
+    "http://127.0.0.1:3000",
+]
+
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'auth-token',
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_PREFLIGHT_MAX_AGE = 86400
+
+CORS_EXPOSE_HEADERS = [
+    'content-disposition',
+    'auth-token',
+    'set-cookie'
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://yourfrontend.com',
+    'http://localhost:3000',
+]
 
 EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST='stmp.gmail.com'

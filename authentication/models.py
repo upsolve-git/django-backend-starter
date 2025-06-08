@@ -15,9 +15,8 @@ class OrganizationTag(models.Model):
 
 class UserDetails(models.Model):
     userId = models.AutoField(primary_key=True)
-    first_Name = models.CharField(max_length=50)
-    last_Name = models.CharField(max_length=50)
-    phone_Number = models.CharField(max_length=15)
+    firstName = models.CharField(max_length=50)
+    lastName = models.CharField(max_length=50)
     email = models.EmailField(unique=True)
     phoneNumber = models.CharField(null=False, default="0000000000")
     role = models.CharField(default=constants.USER)
