@@ -2,6 +2,8 @@ from django.shortcuts import render
 import jwt
 import datetime
 import json
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -10,14 +12,42 @@ from django.core.mail import EmailMessage
 from django.template import loader
 from . import constants
 from authentication.models import (UserDetails,OrganizationTag)
-
-
-
+from datetime import datetime, timedelta, timezone
+from django.contrib.auth.hashers import make_password
+from django.conf import settings
+from .permissions import CustomPermission
 
 
 
 class Login(APIView):
-    permission_classes=(AllowAny,)
+    permission_classes = (CustomPermission,)
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format='email'),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, format='password'),
+            },
+            required=['email', 'password'],
+        ),
+        responses={
+            200: openapi.Response(
+                description='Login successful',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'token': openapi.Schema(type=openapi.TYPE_STRING, description='Authentication token'),
+                        'userId': openapi.Schema(type=openapi.TYPE_STRING, description='User ID'),
+                    }
+                )
+            ),
+            400: openapi.Response('Invalid credentials or request body.'),
+            401: openapi.Response('Unauthorized.'),
+            500: openapi.Response('Internal Server Error'),
+        }
+    )
+
+
     def get(self, request):
         return Response({
             "message": "Login endpoint",
@@ -77,7 +107,34 @@ class Login(APIView):
 
 
 class SignUp(APIView):
-    permission_classes = (AllowAny,)
+    permission_classes = (CustomPermission,)
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format='email'),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, format='password'),
+                'fullName': openapi.Schema(type=openapi.TYPE_STRING),
+                # add other fields if any
+            },
+            required=['email', 'password', 'fullName'],
+        ),
+        responses={
+            201: openapi.Response(
+                description='User successfully created',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'userId': openapi.Schema(type=openapi.TYPE_STRING),
+                        'email': openapi.Schema(type=openapi.TYPE_STRING, format='email'),
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    }
+                )
+            ),
+            400: openapi.Response('Bad request, user already exists or invalid data.'),
+            500: openapi.Response('Internal Server Error'),
+        }
+    )
 
 
     def post(self,request):
@@ -198,7 +255,38 @@ def ConvertToString(questionJson):
 
 
 class ForgotPassword(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = (CustomPermission,)
+
+    def post(self, request):
+        try:
+            request_data = request.data
+            email = request_data['email']
+            if email is None:
+                return Response({Constants.JSON_MESSAGE: "Invalid email Id"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = User.objects.filter(email=email).first()
+
+            if user is None:
+                return Response({Constants.JSON_MESSAGE: "Invalid email Id"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generate access token with 60 minutes expiry
+            expiry_time = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
+            payload = {
+                Constants.EMAIL: user.email,
+                Constants.EXPIRY_TIME: expiry_time.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+
+            secrect_key = settings.SECRET_KEY
+            access_token = jwt.encode(payload, secrect_key, algorithm='HS256')
+
+            link = Constants.FORGOT_PASSWORD_LINK + access_token
+            
+            return sendEmail(email, "Password Reset Link active only for 15 mins", link)
+
+        except Exception as e:
+            return Response({Constants.JSON_MESSAGE: repr(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+
+
 
     def post(self, request):
         try:
