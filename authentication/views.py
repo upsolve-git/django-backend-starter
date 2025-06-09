@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from django.core.mail import EmailMessage
 from django.template import loader
 from . import constants
-from authentication.models import (UserDetails,OrganizationTag)
+from authentication.models import (UserDetails)
 from datetime import datetime, timedelta, timezone
 from django.contrib.auth.hashers import make_password
 from django.conf import settings
@@ -60,18 +60,11 @@ class Login(APIView):
                 return Response({Constants.JSON_MESSAGE: "The user has been deactivated, Please contact the administrator"}, status=status.HTTP_403_FORBIDDEN)
             user_password = user[Constants.ENCRYPTED_PASSWORD]
             if password == user_password:
-                organization = OrganizationTag.objects.filter(tagId=user["tag_id"]).first()
-                organizationExpirationDate = organization.expirationDate
-                if organizationExpirationDate < datetime.date.today():
-                    return Response({Constants.JSON_MESSAGE: "The subscription has expired. Please contact the "
-                                                             "administrator to renew it."},
-                                    status=status.HTTP_403_FORBIDDEN)
                 payload = {
                     USER_ID: user[USER_ID],
                     ROLE: user[ROLE],
                     EXPIRY_TIME: str(datetime.datetime.utcnow() + datetime.timedelta(minutes=60)),
                     "creationTime": str(datetime.datetime.utcnow()),
-                    ORGANIZATION_EXPIRATION_DATE: str(organizationExpirationDate)
                 }
                 secretKey = Constants.SECRET_KEY
                 loginToken = jwt.encode(payload, secretKey, algorithm='HS256')
@@ -81,7 +74,6 @@ class Login(APIView):
                     FIRST_NAME: user[FIRST_NAME],
                     LAST_NAME: user[LAST_NAME],
                     "phone": user[PHONE_NUMBER],
-                    ORGANIZATION_NAME: organization.organizationName,
                     "token": loginToken
                 },
                     status=status.HTTP_200_OK
@@ -158,7 +150,6 @@ class SignUp(APIView):
                 firstName=data[FIRST_NAME],
                 lastName=data[LAST_NAME],
                 phoneNumber=data.get(PHONE_NUMBER, ""),
-                tagId=data[TAG_ID],
                 blocked=False,
                 role=USER 
             )
