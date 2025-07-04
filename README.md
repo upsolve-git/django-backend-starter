@@ -86,4 +86,4 @@ For detailed API documentation, refer to the individual app's `urls.py` and `vie
 2. Create your feature branch (`git checkout -b feature/YourFeatureName`)
 3. Commit your changes (`git commit -m 'Add some YourFeatureName'`)
 4. Push to the branch (`git push origin feature/YourFeatureName`)
-5. Open a Pull Request
+5. Open a Pull RequestS
